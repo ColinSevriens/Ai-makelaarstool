@@ -1,0 +1,2 @@
+# Ai-makelaarstool
+Vastgoedlab tool
