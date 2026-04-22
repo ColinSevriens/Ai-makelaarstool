@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Implementatieplatform Hybride Makelaar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        .sidebar-link { cursor: pointer; position: relative; z-index: 60; border-radius: 0.75rem; }
+        .sidebar-link.active { background-color: #10b981; color: white; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+        .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
+        input[type="range"] { accent-color: #10b981; height: 6px; border-radius: 5px; background: #e2e8f0; outline: none; }
+        .animate-fade { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .scan-opt.selected { border-color: #10b981 !important; background-color: #ecfdf5 !important; border-width: 2px; }
+        .mapping-opt.selected { border-color: #10b981 !important; background-color: #ecfdf5 !important; border-width: 2px; }
+        .tool-card { border: 2px solid #f1f5f9; transition: all 0.2s ease; cursor: pointer; background: white; position: relative; z-index: 10; }
+        .tool-card:hover { border-color: #10b981; }
+        .tool-card.selected { border-color: #10b981; background-color: #f0fdf4; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
+        .assignment-card { border-left: 4px solid #3b82f6; background: #f0f9ff; }
+    </style>
+</head>
+<body class="flex min-h-screen text-slate-800 text-left">
+
+    <!-- ZIJBALK NAVIGATIE -->
+    <aside class="w-72 bg-slate-900 text-white flex-shrink-0 flex flex-col fixed h-full z-50">
+        <div class="p-8 text-left">
+            <h1 class="text-xl font-bold leading-tight tracking-tighter italic text-white">Hybride Makelaar <span class="text-emerald-400 block text-[10px] uppercase tracking-[0.2em] mt-1 not-italic font-bold">Implementatie Gids</span></h1>
+        </div>
+
+        <div class="px-8 mb-6 text-left">
+            <div class="flex justify-between text-[9px] mb-1 font-bold text-slate-500 uppercase tracking-widest">
+                <span>Voortgang traject</span>
+                <span id="progress-percent">0%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div id="progress-bar" class="progress-bar bg-emerald-500 h-full w-0"></div>
+            </div>
+        </div>
+
+        <nav class="flex-grow px-4 space-y-1 overflow-y-auto pb-8 text-nowrap">
+            <button onclick="showPage('home')" id="nav-home" class="sidebar-link active w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-all hover:bg-slate-800 text-left text-white">
+                <i class="fa-solid fa-house-chimney w-4 text-center"></i> 1. Start & Visie
+            </button>
+            <button onclick="showPage('scan')" id="nav-scan" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-all hover:bg-slate-800 text-left text-white">
+                <i class="fa-solid fa-clipboard-check w-4 text-center"></i> 2. AI-quickscan
+            </button>
+            <button onclick="showPage('audit')" id="nav-audit" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-all hover:bg-slate-800 text-left text-white">
+                <i class="fa-solid fa-magnifying-glass-chart w-4 text-center"></i> 3. Procesaudit
+            </button>
+            <button onclick="showPage('roi')" id="nav-roi" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-all hover:bg-slate-800 text-left text-white">
+                <i class="fa-solid fa-calculator w-4 text-center"></i> 4. ROI-calculator
+            </button>
+            <div class="pt-4 border-t border-slate-800 mt-4">
+                <button onclick="showPage('proposal')" id="nav-proposal" class="sidebar-link w-full flex items-center gap-3 px-4 py-4 text-xs transition-all font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-left">
+                    <i class="fa-solid fa-file-contract w-4 text-center text-emerald-500"></i> 5. HET VOORSTEL
+                </button>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- HOOFD CONTENT -->
+    <main class="ml-72 flex-grow relative z-10 text-left">
+        <header class="h-20 bg-white border-b border-slate-200 sticky top-0 z-40 px-8 flex items-center justify-between">
+            <div class="flex items-center gap-4 text-left text-nowrap">
+                <div id="step-number" class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs text-left">1</div>
+                <h2 id="page-title" class="text-xl font-bold text-slate-800 tracking-tight text-left">Start & Visie</h2>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex flex-col text-right">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1 text-nowrap text-right">Kantoornaam</span>
+                    <input type="text" id="office-name" placeholder="Naam kantoor..." class="text-xs font-bold text-slate-800 border-b border-slate-200 focus:outline-none focus:border-emerald-500 transition-all text-right bg-transparent" oninput="updateBrand()">
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8 max-w-6xl mx-auto pb-24 text-left">
+            
+            <!-- 1. START & VISIE -->
+            <section id="content-home" class="page-content animate-fade space-y-12 text-left">
+                <div class="bg-white p-12 rounded-[3.5rem] card-shadow border border-slate-100 text-left relative overflow-hidden">
+                    <div class="relative z-10 text-left">
+                        <h3 class="text-4xl font-bold text-slate-900 mb-6 leading-tight italic tracking-tighter text-left">De Hybride Makelaar: <span class="text-emerald-500">Efficiëntie door AI.</span></h3>
+                        <p class="text-slate-600 text-lg leading-relaxed mb-8 max-w-3xl text-left">In een markt die vraagt om snelheid en persoonlijke expertise, biedt AI de makelaar een krachtige hefboom. Dit platform analyseert uw organisatie en biedt een concreet pad naar meer efficiency en hogere klantwaarde.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                            <div class="p-8 bg-slate-900 text-white rounded-[2rem] border border-slate-800 text-left">
+                                <h5 class="text-emerald-400 font-bold mb-3 uppercase text-[10px] tracking-widest text-left">Visie</h5>
+                                <p class="text-xs text-slate-400 leading-relaxed italic text-left">AI vervangt de makelaar niet, maar de makelaar die AI gebruikt, zal de makelaar die dat niet doet vervangen. Wij automatiseren repetitieve taken, u behoudt de persoonlijke klik.</p>
+                            </div>
+                            <div class="p-8 bg-emerald-50 rounded-[2rem] border border-emerald-100 text-left text-emerald-800">
+                                <h5 class="text-emerald-800 font-bold mb-3 uppercase text-[10px] tracking-widest text-left">Traject</h5>
+                                <p class="text-xs text-emerald-700 leading-relaxed text-left italic">Doorloop de stappen: Ontdek de toepassingen, doe de nulmeting, identificeer tijd-lekken en bereken uw ROI voor een plan op maat.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-robot absolute right-[-50px] bottom-[-50px] text-[300px] opacity-5 text-slate-900"></i>
+                </div>
+
+                <div class="space-y-6 text-left">
+                    <h4 class="text-xl font-bold text-slate-800 flex items-center gap-3 italic text-left underline decoration-emerald-400 decoration-2 underline-offset-8">AI-Bibliotheek: Bekijk de Toepassingen</h4>
+                    <p class="text-sm text-slate-500 mb-8 max-w-2xl text-left">Klik op de toepassingen hieronder voor een diepgaande uitleg per proces.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+                        <div onclick="openAppDetail('valuation')" class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 cursor-pointer hover:border-emerald-400 transition-all group text-left">
+                            <i class="fa-solid fa-chart-line text-3xl text-emerald-500 mb-4 text-left group-hover:scale-110 transition-transform"></i>
+                            <h4 class="font-bold text-slate-800 text-sm text-left">Waarde-analyse</h4>
+                            <p class="text-[11px] text-slate-400 mt-2 uppercase font-bold tracking-widest text-left">Details bekijken <i class="fa-solid fa-arrow-right ml-1"></i></p>
+                        </div>
+                        <div onclick="openAppDetail('content')" class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 cursor-pointer hover:border-blue-400 transition-all group text-left">
+                            <i class="fa-solid fa-pen-nib text-3xl text-blue-500 mb-4 text-left group-hover:scale-110 transition-transform"></i>
+                            <h4 class="font-bold text-slate-800 text-sm text-left">Contentcreatie</h4>
+                            <p class="text-[11px] text-slate-400 mt-2 uppercase font-bold tracking-widest text-left">Details bekijken <i class="fa-solid fa-arrow-right ml-1"></i></p>
+                        </div>
+                        <div onclick="openAppDetail('leads')" class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 cursor-pointer hover:border-purple-400 transition-all group text-left">
+                            <i class="fa-solid fa-comments text-3xl text-purple-500 mb-4 text-left group-hover:scale-110 transition-transform text-left"></i>
+                            <h4 class="font-bold text-slate-800 text-sm text-left">Leadopvolging</h4>
+                            <p class="text-[11px] text-slate-400 mt-2 uppercase font-bold tracking-widest text-left text-left">Details bekijken <i class="fa-solid fa-arrow-right ml-1 text-left"></i></p>
+                        </div>
+                        <div onclick="openAppDetail('admin')" class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 cursor-pointer hover:border-orange-400 transition-all group text-left">
+                            <i class="fa-solid fa-gears text-3xl text-orange-500 mb-4 text-left group-hover:scale-110 transition-transform text-left"></i>
+                            <h4 class="font-bold text-slate-800 text-sm text-left">Automatisering</h4>
+                            <p class="text-[11px] text-slate-400 mt-2 uppercase font-bold tracking-widest text-left">Details bekijken <i class="fa-solid fa-arrow-right ml-1"></i></p>
+                        </div>
+                        <div onclick="openAppDetail('visual')" class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 cursor-pointer hover:border-rose-400 transition-all group text-left">
+                            <i class="fa-solid fa-camera text-3xl text-rose-500 mb-4 text-left group-hover:scale-110 transition-transform text-left text-left"></i>
+                            <h4 class="font-bold text-slate-800 text-sm text-left text-nowrap">Beeldanalyse</h4>
+                            <p class="text-[11px] text-slate-400 mt-2 uppercase font-bold tracking-widest text-left text-left text-left">Details bekijken <i class="fa-solid fa-arrow-right ml-1 text-left"></i></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center pt-12 border-t border-slate-200 mt-12 text-left">
+                    <button onclick="showPage('scan')" class="bg-slate-900 text-white px-16 py-5 rounded-2xl font-bold shadow-2xl hover:bg-emerald-600 transition-all uppercase tracking-[0.2em] text-xs text-left">Start de Analyse <i class="fa-solid fa-chevron-right ml-3 text-left"></i></button>
+                    <p class="text-[9px] text-slate-400 mt-4 font-bold uppercase tracking-widest text-center">STAP 1 VAN 5: DIGITALE QUICKSCAN</p>
+                </div>
+            </section>
+
+            <!-- 2. QUICKSCAN -->
+            <section id="content-scan" class="page-content hidden animate-fade space-y-8 text-left">
+                <div class="bg-white p-12 rounded-[3rem] card-shadow border border-slate-100 text-left">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-10 text-center italic tracking-tighter uppercase text-left">Module 2: Digitale Quickscan</h3>
+                    <div id="scan-container" class="space-y-12 text-left">
+                        <div class="space-y-4">
+                            <p class="font-bold text-slate-800 text-sm flex items-center gap-3 text-left"><span class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs text-left">1</span> Hoe leggen jullie objectinformatie vast in het CRM?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pl-11">
+                                <button onclick="selectScan(1, 1)" id="q1-o1" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left">Vrije notities en tekstvelden.</button>
+                                <button onclick="selectScan(1, 2)" id="q1-o2" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left">Deels gestandaardiseerd.</button>
+                                <button onclick="selectScan(1, 3)" id="q1-o3" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Data-First (volledig gestructureerd).</button>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="font-bold text-slate-800 text-sm flex items-center gap-3 text-left"><span class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs text-left">2</span> Hoe snel volgt u een nieuwe lead (Funda) op?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pl-11">
+                                <button onclick="selectScan(2, 1)" id="q2-o1" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Vaak de volgende werkdag.</button>
+                                <button onclick="selectScan(2, 2)" id="q2-o2" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Binnen uren (kantoortijd).</button>
+                                <button onclick="selectScan(2, 3)" id="q2-o3" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Direct en 24/7 (AI-assisted).</button>
+                            </div>
+                        </div>
+                        <div class="space-y-4 text-left">
+                            <p class="font-bold text-slate-800 text-sm flex items-center gap-3 text-left text-left"><span class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs text-left text-left text-left text-left">3</span> Hoe wordt het personeel getraind in AI-skills?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pl-11 text-left text-left text-left">
+                                <button onclick="selectScan(3, 1)" id="q3-o1" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Helemaal niet.</button>
+                                <button onclick="selectScan(3, 2)" id="q3-o2" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Incidenteel bij overleg.</button>
+                                <button onclick="selectScan(3, 3)" id="q3-o3" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left text-left">Structurele AI-roadmap.</button>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="font-bold text-slate-800 text-sm flex items-center gap-3 text-left"><span class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs text-left">4</span> Wie beantwoordt standaard klantvragen (FAQ)?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pl-11">
+                                <button onclick="selectScan(4, 1)" id="q4-o1" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">De makelaar zelf.</button>
+                                <button onclick="selectScan(4, 2)" id="q4-o2" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Binnendienst (handmatig).</button>
+                                <button onclick="selectScan(4, 3)" id="q4-o3" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Automatisch via AI.</button>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="font-bold text-slate-800 text-sm flex items-center gap-3 text-left"><span class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs text-left text-left">5</span> Hoe komt een marktwaarde-advies tot stand?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pl-11">
+                                <button onclick="selectScan(5, 1)" id="q5-o1" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Puur op ervaring.</button>
+                                <button onclick="selectScan(5, 2)" id="q5-o2" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Ondersteund door datasites.</button>
+                                <button onclick="selectScan(5, 3)" id="q5-o3" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Real-time Big Data analyse.</button>
+                            </div>
+                        </div>
+                        <div class="space-y-4 text-left">
+                            <p class="font-bold text-slate-800 text-sm flex items-center gap-3 text-left text-left"><span class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs text-left text-left text-left text-left">6</span> Is er tijd/budget voor digitale innovatie?</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pl-11 text-left text-left text-left text-left">
+                                <button onclick="selectScan(6, 1)" id="q6-o1" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Nee, waan van de dag.</button>
+                                <button onclick="selectScan(6, 2)" id="q6-o2" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left">Informeel bij overleg.</button>
+                                <button onclick="selectScan(6, 3)" id="q6-o3" class="scan-opt p-4 border rounded-2xl text-[10px] text-left transition-all bg-white text-left text-left text-left">Ja, budget & plan.</button>
+                            </div>
+                        </div>
+                        <div class="text-center pt-8 text-left">
+                            <button onclick="showPage('audit')" class="bg-slate-900 text-white px-12 py-4 rounded-2xl font-bold shadow-xl hover:bg-emerald-600 transition-all uppercase tracking-widest text-xs text-left">Audit Starten</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. AUDIT -->
+            <section id="content-audit" class="page-content hidden animate-fade space-y-8 text-left">
+                <div class="bg-white p-12 rounded-[3.5rem] card-shadow border border-slate-100 text-center text-left">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4 tracking-tighter italic text-left text-left">Module 3: Proces Audit</h3>
+                    <p class="text-slate-500 text-sm mb-12 italic leading-relaxed text-left text-left max-w-2xl text-left">Vink aan welke processen momenteel te veel menselijke uren opslokken binnen uw kantoor.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left text-left">
+                        <button onclick="toggleMapping('valuation')" id="map-valuation" class="mapping-opt p-8 border-2 rounded-[2rem] transition-all bg-white text-left text-left text-left text-left">
+                            <h5 class="font-bold text-slate-800 text-sm text-left text-left">Referentie-onderzoek</h5>
+                            <p class="text-[10px] text-slate-500 mt-1 italic text-left text-left">U bent te lang bezig met het handmatig opzoeken van panden voor rapporten.</p>
+                        </button>
+                        <button onclick="toggleMapping('content')" id="map-content" class="mapping-opt p-8 border-2 rounded-[2rem] transition-all bg-white text-left text-left text-left text-left text-left text-left">
+                            <h5 class="font-bold text-slate-800 text-sm text-left text-left text-left">Funda Marketing</h5>
+                            <p class="text-[10px] text-slate-500 mt-1 italic text-left text-left text-left">Zelf typen en redigeren van woningomschrijvingen kost te veel tijd.</p>
+                        </button>
+                        <button onclick="toggleMapping('leads')" id="map-leads" class="mapping-opt p-8 border-2 rounded-[2rem] transition-all bg-white text-left text-left text-left text-left text-left text-left text-left text-left">
+                            <h5 class="font-bold text-slate-800 text-sm text-left text-left text-left text-left text-left">Leadopvolging</h5>
+                            <p class="text-[10px] text-slate-500 mt-1 italic text-left text-left text-left text-left text-left">Elke lead handmatig nabellen voor een afspraak.</p>
+                        </button>
+                        <button onclick="toggleMapping('admin')" id="map-admin" class="mapping-opt p-8 border-2 rounded-[2rem] transition-all bg-white text-left text-left text-left text-left text-left text-left text-left text-left text-left">
+                            <h5 class="font-bold text-slate-800 text-sm text-left text-left text-left text-left text-left text-left text-left text-left text-left">Dossier-management</h5>
+                            <p class="text-[10px] text-slate-500 mt-1 italic text-left text-left text-left text-left text-left text-left text-left text-left text-left">Handmatige data-entry van kenmerken in het CRM.</p>
+                        </button>
+                    </div>
+                    <div class="text-center mt-12 text-left">
+                        <button onclick="showPage('roi')" class="bg-slate-900 text-white px-12 py-4 rounded-2xl font-bold shadow-xl text-left">ROI Berekenen</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. ROI-CALCULATOR -->
+            <section id="content-roi" class="page-content hidden animate-fade space-y-8 text-left">
+                <div class="bg-white p-12 rounded-[3.5rem] card-shadow border border-slate-100 text-left">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-10 italic underline decoration-emerald-400 decoration-4 underline-offset-8 text-left text-left text-left">Module 4: ROI-calculator</h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12 text-left">
+                        <div class="space-y-10 text-left text-left text-left">
+                            <div>
+                                <div class="flex justify-between mb-2 text-left text-left">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left text-left text-left">Verkoop & Acquisitie uren / wk</label>
+                                    <span id="val-v" class="text-emerald-600 font-bold text-nowrap text-right">15u</span>
+                                </div>
+                                <input type="range" id="input-v" min="0" max="40" value="15" class="w-full text-left text-left text-left text-left" oninput="calculateROI()">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2 text-left text-left text-left">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left text-left text-left">Taxatie & Analyse uren / wk</label>
+                                    <span id="val-t" class="text-emerald-600 font-bold text-nowrap text-right">10u</span>
+                                </div>
+                                <input type="range" id="input-t" min="0" max="40" value="10" class="w-full text-left text-left text-left text-left text-left" oninput="calculateROI()">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2 text-left text-left text-left text-left">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left text-nowrap">Admin & Binnendienst uren / wk</label>
+                                    <span id="val-a" class="text-emerald-600 font-bold text-nowrap text-right text-right">20u</span>
+                                </div>
+                                <input type="range" id="input-a" min="0" max="40" value="20" class="w-full text-left text-left text-left text-left text-left text-left" oninput="calculateROI()">
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-[3rem] p-10 text-white flex flex-col justify-center items-center text-center shadow-2xl relative overflow-hidden">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">Tijdwinst per week</p>
+                            <h4 id="roi-hours" class="text-8xl font-black text-emerald-400 mb-2 tracking-tighter leading-none text-center">0.0</h4>
+                            <span class="text-xs uppercase font-black text-slate-600 text-center">vrijgekomen uren</span>
+                            <div class="mt-8 pt-8 border-t border-white/10 w-full flex justify-between items-center text-xs">
+                                <span class="text-slate-500 uppercase font-black text-left">Efficiency:</span>
+                                <span id="roi-percent" class="text-emerald-400 font-black text-xl text-right">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="text-lg font-bold text-slate-800 mb-6 italic text-left">Activeer AI-Toepassingen</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
+                        <button onclick="toggleTool('valuation')" id="tool-valuation" class="tool-card p-6 rounded-[2rem] text-left border-2 bg-white">
+                            <div class="flex items-center gap-5">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-200 check-box flex items-center justify-center text-xs text-left"><i class="fa-solid fa-check hidden text-emerald-600"></i></div>
+                                <div class="text-left text-left">
+                                    <h6 class="font-bold text-slate-800 text-xs">Waarde-analyse</h6>
+                                    <p class="text-[9px] text-slate-400 italic mt-1">-20% taxatietijd</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button onclick="toggleTool('content')" id="tool-content" class="tool-card p-6 rounded-[2rem] text-left border-2 bg-white">
+                            <div class="flex items-center gap-5">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-200 check-box flex items-center justify-center text-xs"><i class="fa-solid fa-check hidden text-emerald-600"></i></div>
+                                <div class="text-left text-left">
+                                    <h6 class="font-bold text-slate-800 text-xs">Contentcreatie</h6>
+                                    <p class="text-[9px] text-slate-400 italic mt-1">-50% contenttijd</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button onclick="toggleTool('leads')" id="tool-leads" class="tool-card p-6 rounded-[2rem] text-left border-2 bg-white">
+                            <div class="flex items-center gap-5">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-200 check-box flex items-center justify-center text-xs"><i class="fa-solid fa-check hidden text-emerald-600"></i></div>
+                                <div class="text-left text-left text-left">
+                                    <h6 class="font-bold text-slate-800 text-xs">Leadopvolging</h6>
+                                    <p class="text-[9px] text-slate-400 italic mt-1">-40% binnendienst druk</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button onclick="toggleTool('admin')" id="tool-admin" class="tool-card p-6 rounded-[2rem] text-left border-2 bg-white">
+                            <div class="flex items-center gap-5 text-left text-left">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-200 check-box flex items-center justify-center text-xs text-left"><i class="fa-solid fa-check hidden text-emerald-600"></i></div>
+                                <div class="text-left text-left">
+                                    <h6 class="font-bold text-slate-800 text-xs text-nowrap">Automatisering</h6>
+                                    <p class="text-[9px] text-slate-400 italic mt-1">-30% dossier druk</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button onclick="toggleTool('visual')" id="tool-visual" class="tool-card p-6 rounded-[2rem] text-left border-2 bg-white">
+                            <div class="flex items-center gap-5">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-200 check-box flex items-center justify-center text-xs text-left"><i class="fa-solid fa-check hidden text-emerald-600"></i></div>
+                                <div class="text-left text-left text-left">
+                                    <h6 class="font-bold text-slate-800 text-xs text-nowrap">Beeldanalyse</h6>
+                                    <p class="text-[9px] text-slate-400 italic mt-1">-15% data-entry</p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="text-center pt-12 border-t border-slate-100 mt-12 text-left">
+                        <button onclick="showPage('proposal')" class="bg-emerald-500 text-white px-10 py-4 rounded-2xl font-bold shadow-xl hover:bg-emerald-600 transition-all text-sm">Bekijk Strategisch Voorstel <i class="fa-solid fa-file-invoice ml-2"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. HET VOORSTEL -->
+            <section id="content-proposal" class="page-content hidden animate-fade space-y-12 text-left">
+                <div id="proposal-waiting" class="bg-white p-24 rounded-[3.5rem] card-shadow border border-slate-100 text-center space-y-8 animate-fade text-center">
+                    <i class="fa-solid fa-file-signature text-slate-200 text-9xl text-center"></i>
+                    <h3 class="text-2xl font-bold text-slate-800 text-center">Analyses verwerken...</h3>
+                    <p class="text-slate-500 max-w-sm mx-auto italic text-sm text-center text-center">Vul de Quickscan en de Calculator in om uw rapport te bekijken.</p>
+                </div>
+
+                <div id="proposal-ready" class="hidden space-y-12 text-left">
+                    <div class="bg-slate-900 text-white p-16 rounded-[4rem] shadow-2xl relative overflow-hidden text-left border-4 border-emerald-500/20 text-left">
+                        <div class="relative z-10 text-left">
+                            <h3 class="text-5xl font-black mb-4 italic tracking-tighter uppercase text-emerald-400 text-left leading-tight">Strategisch Voorstel</h3>
+                            <p class="text-slate-400 font-bold mb-14 uppercase tracking-[0.4em] text-sm text-left">Voor: <span class="office-display underline text-white">Uw Kantoor</span></p>
+                            
+                            <!-- DASHBOARD BLOCKS: Centered alignment fix -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 pt-14 border-t border-white/10">
+                                <div class="p-6 bg-white/5 rounded-3xl border border-white/5 flex flex-col items-center justify-center text-center">
+                                    <h6 class="text-[10px] text-slate-500 font-bold uppercase mb-3 tracking-widest text-center">Kantoorstatus</h6>
+                                    <p id="prop-status" class="text-xl font-bold text-white tracking-tight text-center">-</p>
+                                </div>
+                                <div class="p-6 bg-emerald-500/10 rounded-3xl border border-emerald-500/10 flex flex-col items-center justify-center text-center">
+                                    <h6 class="text-[10px] text-emerald-500 font-bold uppercase mb-3 tracking-widest text-center">Waarde Jaarbasis</h6>
+                                    <p id="prop-money" class="text-4xl font-black text-emerald-400 tracking-tighter text-center">€0</p>
+                                    <span class="text-[9px] text-slate-500 font-bold uppercase text-center tracking-tighter mt-1">bij tarief €75/u</span>
+                                </div>
+                                <div class="p-6 bg-white/5 rounded-3xl border border-white/5 flex flex-col items-center justify-center text-center">
+                                    <h6 class="text-[10px] text-slate-500 font-bold mb-3 tracking-widest text-center uppercase">Focus voor 2025</h6>
+                                    <p id="prop-focus" class="text-xl font-bold italic text-white tracking-tight text-center leading-tight">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-14 rounded-[3.5rem] card-shadow border border-slate-100 text-left">
+                        <h4 class="text-2xl font-bold text-slate-800 mb-10 italic text-left border-b pb-4 border-emerald-500">Inhoudelijke Analyse</h4>
+                        <div class="text-sm text-slate-600 space-y-8 leading-relaxed text-left italic border-l-4 border-slate-100 pl-8" id="prop-summary"></div>
+                    </div>
+
+                    <!-- TEAM OPDRACHTEN -->
+                    <div class="bg-white p-14 rounded-[3.5rem] card-shadow border border-slate-100 text-left">
+                        <h4 class="text-xl font-bold text-slate-800 mb-8 flex items-center gap-4 italic underline decoration-blue-500 underline-offset-8">
+                            <i class="fa-solid fa-tasks text-blue-500 text-left"></i> Praktijkopdrachten voor uw Team
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                            <div class="p-6 rounded-3xl assignment-card text-left">
+                                <h6 class="font-bold text-sm mb-3 text-left">1. Mystery Lead Test</h6>
+                                <p class="text-[11px] text-slate-600 leading-relaxed text-left italic">Vraag een bekende om in het weekend via Funda een aanvraag te doen. Meet hoe lang het duurt voor er een reactie komt.</p>
+                            </div>
+                            <div class="p-6 rounded-3xl assignment-card text-left" style="border-color: #10b981; background: #f0fdf4;">
+                                <h6 class="font-bold text-sm mb-3 text-left">2. De Dossier-Audit</h6>
+                                <p class="text-[11px] text-slate-600 leading-relaxed text-left italic">Controleer 5 recente dossiers. Hoeveel data is vrij getypt ipv in vaste velden? Data-hygiëne is de motor voor AI.</p>
+                            </div>
+                            <div class="p-6 rounded-3xl assignment-card text-left" style="border-color: #f97316; background: #fff7ed;">
+                                <h6 class="font-bold text-sm mb-3 text-left text-left">3. AI Prompt-Battle</h6>
+                                <p class="text-[11px] text-slate-600 leading-relaxed text-left italic">Schrijf handmatig een woningtekst en laat AI dit ook doen. Laat het team blind stemmen op de beste tekst.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-14 rounded-[3.5rem] card-shadow border border-slate-100 text-left">
+                        <h4 class="text-xl font-bold text-slate-800 mb-10 flex items-center gap-4 text-left italic uppercase tracking-tighter text-left">
+                            <i class="fa-solid fa-calendar-check text-emerald-500 text-left text-left"></i> Uw Implementatieplan
+                        </h4>
+                        <div id="prop-actions" class="space-y-10 border-l-2 border-slate-100 ml-4 pl-10 relative text-sm text-left"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- MODAL -->
+    <div id="app-modal" class="hidden fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-4 text-left">
+        <div class="bg-white w-full max-w-2xl rounded-[3.5rem] card-shadow overflow-hidden animate-fade text-left">
+            <div class="p-10 bg-slate-50 border-b flex justify-between items-center text-nowrap text-left">
+                <div class="flex items-center gap-4 text-left">
+                    <div id="modal-icon-bg" class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg text-left">
+                        <i id="modal-icon"></i>
+                    </div>
+                    <h3 id="modal-title" class="text-2xl font-bold text-slate-800 italic tracking-tighter text-nowrap text-left">Titel</h3>
+                </div>
+                <button onclick="closeAppDetail()" class="text-slate-400 hover:text-rose-500 transition-colors ml-4 text-left"><i class="fa-solid fa-circle-xmark text-4xl text-left"></i></button>
+            </div>
+            <div id="modal-body" class="p-10 text-[14px] text-slate-600 space-y-8 text-left"></div>
+        </div>
+    </div>
+
+    <script>
+        let state = { scanScore: 0, mappingPains: [], activeTools: [], totalSaved: 0, v: 15, t: 10, a: 20, isScanDone: false, currentPage: 'home' };
+
+        const appDetails = {
+            valuation: { title: "Waarde-analyse", icon: "fa-solid fa-chart-line", color: "#10b981", what: "AI analyseert historische data voor een direct prijsadvies.", use: "Intakes en onderbouwing van rapportages.", benefits: "Snelheid en hogere objectiviteit.", shift: "Makelaar valideert de data ipv handmatig te zoeken." },
+            content: { title: "Contentcreatie", icon: "fa-solid fa-pen-nib", color: "#3b82f6", what: "AI schrijft Funda-teksten en social media posts.", use: "Snel online zetten van listings direct na opname.", benefits: "Tijdwinst en constante kwaliteit.", shift: "Makelaar voert de eindredactie ipv auteurschap." },
+            leads: { title: "Leadopvolging", icon: "fa-solid fa-comments", color: "#a855f7", what: "Agents die 24/7 reageren op Funda-leads en afspraken plannen.", use: "Automatische opvolging van aanvragen.", benefits: "Geen gemiste leads en hogere conversie.", shift: "Makelaar focust op warme gesprekken en persoonlijke klik." },
+            admin: { title: "Automatisering", icon: "fa-solid fa-gears", color: "#f97316", what: "CRM-koppelingen die dossiers automatisch vullen via extractie.", use: "Efficiëntere dossieropbouw zonder overtikwerk.", benefits: "Minder fouten, snellere doorlooptijd.", shift: "Dienstdoend personeel krijgt een proactievere commerciële rol." },
+            visual: { title: "Beeldanalyse", icon: "fa-solid fa-camera", color: "#f43f5e", what: "AI herkent ruimtes en kenmerken automatisch in foto's.", use: "Objectkenmerken automatisch vullen op portals.", benefits: "listings sneller online en data is vollediger.", shift: "Focus op visuele strategie per object." }
+        };
+
+        function showPage(p) {
+            document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+            const cEl = document.getElementById('content-' + p);
+            const nEl = document.getElementById('nav-' + p);
+            if(cEl) cEl.classList.remove('hidden');
+            if(nEl) nEl.classList.add('active');
+            state.currentPage = p; updateProgressBar();
+            if(p === 'proposal') updateProposal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateProgressBar() {
+            const steps = ['home','scan','audit','roi','proposal'];
+            const idx = steps.indexOf(state.currentPage) + 1;
+            const perc = Math.round((idx / steps.length) * 100);
+            if(document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = perc + '%';
+            if(document.getElementById('progress-percent')) document.getElementById('progress-percent').innerText = perc + '%';
+            if(document.getElementById('step-number')) document.getElementById('step-number').innerText = idx;
+            const titles = { home:'Start & Visie', scan:'AI-quickscan', audit:'Procesaudit', roi:'ROI-calculator', proposal:'HET VOORSTEL' };
+            if(document.getElementById('page-title')) document.getElementById('page-title').innerText = titles[state.currentPage];
+        }
+
+        function selectScan(q, val) {
+            document.querySelectorAll(`[id^='q${q}-o']`).forEach(b => b.classList.remove('selected', 'border-emerald-500', 'bg-emerald-50', 'ring-2', 'ring-emerald-100'));
+            const selectedBtn = document.getElementById(`q${q}-o${val}`);
+            if(selectedBtn) selectedBtn.classList.add('selected', 'border-emerald-500', 'bg-emerald-50', 'ring-2', 'ring-emerald-100');
+            let t = 0, a = 0;
+            for(let i=1; i<=6; i++) {
+                const s = document.querySelector(`[id^='q${i}-o'].selected`);
+                if(s) { t += parseInt(s.id.split('-o')[1]); a++; }
+            }
+            state.scanScore = t; state.isScanDone = (a === 6);
+        }
+
+        function toggleMapping(k) {
+            const el = document.getElementById('map-' + k);
+            if(state.mappingPains.includes(k)) {
+                state.mappingPains = state.mappingPains.filter(i => i !== k);
+                if(el) el.classList.remove('selected', 'border-emerald-500', 'bg-emerald-50', 'ring-2', 'ring-emerald-100');
+            } else {
+                state.mappingPains.push(k);
+                if(el) el.classList.add('selected', 'border-emerald-500', 'bg-emerald-50', 'ring-2', 'ring-emerald-100');
+            }
+        }
+
+        function toggleTool(t) {
+            const el = document.getElementById('tool-' + t); if(!el) return;
+            const check = el.querySelector('.check-box');
+            const icon = check ? check.querySelector('i') : null;
+            if(state.activeTools.includes(t)) {
+                state.activeTools = state.activeTools.filter(item => item !== t);
+                el.classList.remove('selected'); if(icon) icon.classList.add('hidden');
+            } else {
+                state.activeTools.push(t);
+                el.classList.add('selected'); if(icon) icon.classList.remove('hidden');
+            }
+            calculateROI();
+        }
+
+        function calculateROI() {
+            const vIn = document.getElementById('input-v'), tIn = document.getElementById('input-t'), aIn = document.getElementById('input-a');
+            state.v = vIn ? parseFloat(vIn.value) : 15; state.t = tIn ? parseFloat(tIn.value) : 10; state.a = aIn ? parseFloat(aIn.value) : 20;
+            if(document.getElementById('val-v')) document.getElementById('val-v').innerText = state.v + 'u';
+            if(document.getElementById('val-t')) document.getElementById('val-t').innerText = state.t + 'u';
+            if(document.getElementById('val-a')) document.getElementById('val-a').innerText = state.a + 'u';
+            let saved = 0;
+            if(state.activeTools.includes('valuation')) saved += (state.t * 0.2);
+            if(state.activeTools.includes('content'))   saved += (state.a * 0.35);
+            if(state.activeTools.includes('leads'))     saved += (state.a * 0.3);
+            if(state.activeTools.includes('admin'))     saved += (state.a * 0.25);
+            if(state.activeTools.includes('visual'))    saved += (state.a * 0.15);
+            state.totalSaved = saved;
+            const hDisplay = document.getElementById('roi-hours'), pDisplay = document.getElementById('roi-percent');
+            if(hDisplay) hDisplay.innerText = saved.toFixed(1);
+            let totalHrs = state.v + state.t + state.a;
+            if(pDisplay) pDisplay.innerText = Math.round(totalHrs > 0 ? (saved/totalHrs)*100 : 0) + '%';
+        }
+
+        function updateProposal() {
+            const waiting = document.getElementById('proposal-waiting'), ready = document.getElementById('proposal-ready');
+            const name = document.getElementById('office-name').value || "Uw Kantoor";
+            document.querySelectorAll('.office-display').forEach(e => e.innerText = name);
+            if(!state.isScanDone || state.activeTools.length === 0) { 
+                if(waiting) waiting.classList.remove('hidden'); if(ready) ready.classList.add('hidden'); return; 
+            }
+            if(waiting) waiting.classList.add('hidden'); if(ready) ready.classList.remove('hidden');
+            const moneyEl = document.getElementById('prop-money'), statusEl = document.getElementById('prop-status'), focusEl = document.getElementById('prop-focus'), summaryEl = document.getElementById('prop-summary'), actionsEl = document.getElementById('prop-actions');
+            if(moneyEl) moneyEl.innerText = '€' + Math.round(state.totalSaved * 75 * 52).toLocaleString('nl-NL');
+            const g = state.totalSaved.toFixed(1);
+            if(state.scanScore <= 10) {
+                statusEl.innerText = "Basis (Analoog)"; focusEl.innerText = "Fase 1: Fundament";
+                summaryEl.innerHTML = `<p>Uw kantoor, <strong>${name}</strong>, bevindt zich in de vroege fase van de transitie. Uit de analyse blijkt dat u wekelijks <strong>${g} uur</strong> onbenut laat door administratieve lasten. De transitie naar een hybride model biedt u de kans om een digitale ruggengraat te bouwen die uw personeel ontlast.</p><p>De focus moet nu liggen op data-hygiëne in het CRM, zodat AI-tools de repititieve taken foutloos kunnen overnemen.</p>`;
+                actionsEl.innerHTML = `
+                    <div class="relative"><div class="absolute -left-14 top-0 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">1</div><h6 class="font-bold">Week 1-4: CRM & Data Sanering</h6><p class="text-xs text-slate-500">Voer praktijkopdracht 2 uit. Zorg dat objectdata in Realworks gestructureerd is ipv vrije tekst.</p></div>
+                    <div class="relative"><div class="absolute -left-14 top-0 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">2</div><h6 class="font-bold">Maand 1-2: Pilot Contentcreatie</h6><p class="text-xs text-slate-500">Activeer AI voor woningteksten en beeldanalyse. Dit bespaart direct tijd voor lokale acquisitie.</p></div>
+                    <div class="relative"><div class="absolute -left-14 top-0 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs text-left">3</div><h6 class="font-bold">Maand 3+: Visie & Team-sessie</h6><p class="text-xs text-slate-500">Deel de resultaten van opdracht 3. Laat het team zien dat AI een assistent is, geen vervanging.</p></div>`;
+            } else {
+                statusEl.innerText = "Modern (Hybride)"; focusEl.innerText = "Fase 2: Schaalvergroting";
+                summaryEl.innerHTML = `<p><strong>${name}</strong> is klaar voor de volgende stap: <strong>Agentic AI</strong>. Met een winst van <strong>${g} uur per week</strong> kan uw kantoor de focus volledig verschuiven naar strategisch advies en het winnen van marktaandeel.</p><p>Uw fundament is solide; nu is het tijd om processen zoals leadkwalificatie en dossiervulling autonoom te laten verlopen.</p>`;
+                actionsEl.innerHTML = `
+                    <div class="relative"><div class="absolute -left-14 top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">1</div><h6 class="font-bold text-left">Week 1-2: Agentic Lead Deployment</h6><p class="text-xs text-slate-500">Activeer bots die leads 24/7 kwalificeren én afspraken direct in de agenda's van uw makelaars plannen.</p></div>
+                    <div class="relative"><div class="absolute -left-14 top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">2</div><h6 class="font-bold text-left">Maand 1-2: Predictive Marketing Scaling</h6><p class="text-xs text-slate-500 text-nowrap text-nowrap">Gebruik Big Data om de verkoopintentie in de wijk te voorspellen en uw acquisitie proactief te verscherpen.</p></div>
+                    <div class="relative"><div class="absolute -left-14 top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs text-left">3</div><h6 class="font-bold text-left">Continu: Transitie naar Advieshuis</h6><p class="text-xs text-slate-500 text-left">Verschuif uw verdienmodel: u verkoopt nu hoogwaardig advies en emotionele begeleiding, geen administratie.</p></div>`;
+            }
+        }
+
+        function openAppDetail(key) {
+            const d = appDetails[key];
+            const modalTitle = document.getElementById('modal-title'), modalIcon = document.getElementById('modal-icon'), modalIconBg = document.getElementById('modal-icon-bg'), modalBody = document.getElementById('modal-body');
+            if(modalTitle) modalTitle.innerText = d.title;
+            if(modalIcon) modalIcon.className = d.icon;
+            if(modalIconBg) modalIconBg.style.backgroundColor = d.color;
+            if(modalBody) modalBody.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-10 text-left"><div class="text-left text-left"><h6 class="font-bold text-slate-900 mb-2 uppercase text-[10px] tracking-widest border-b pb-1 text-left text-left text-left text-left">Wat het doet</h6><p class="text-left text-left text-left text-left">${d.what}</p></div><div class="text-left text-left text-left text-left text-left text-left text-left text-left"><h6 class="font-bold text-slate-900 mb-2 uppercase text-[10px] tracking-widest border-b pb-1 text-left text-left text-left text-left">Gebruik op kantoor</h6><p class="text-left text-left text-left text-left text-left text-left">${d.use}</p></div><div class="text-left text-left text-left text-left text-left text-left text-left text-left text-left"><h6 class="font-bold text-emerald-600 mb-2 uppercase text-[10px] tracking-widest border-b pb-1 text-left text-left text-left text-left text-left text-left">Voordelen</h6><p class="font-semibold text-left text-left text-left text-left text-left text-left">${d.benefits}</p></div><div class="bg-emerald-50 p-6 rounded-3xl italic shadow-inner text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left"><h6 class="font-bold text-emerald-800 not-italic mb-2 uppercase text-[10px] tracking-widest text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">Rol Makelaar</h6><p class="text-emerald-900 text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">${d.shift}</p></div></div>`;
+            const modal = document.getElementById('app-modal');
+            if(modal) modal.classList.remove('hidden');
+        }
+
+        function closeAppDetail() { document.getElementById('app-modal').classList.add('hidden'); }
+        function updateBrand() { updateProposal(); }
+        window.onload = () => { calculateROI(); updateProgressBar(); };
+    </script>
+</body>
+</html>
